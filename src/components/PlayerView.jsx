@@ -23,7 +23,7 @@ import {
 import { money, money0, num, pct, pp, rateFmt, rounds, signedMoney, tone } from '../lib/format.js'
 import { Avatar, InfoTip, QtyInput, Seg, Timer } from './ui.jsx'
 import { Standings } from './Board.jsx'
-import { AssetIcon, EventStrips, ShockOverlay, Tag } from './events.jsx'
+import { AssetIcon, EventStrips, Takeover, Tag } from './events.jsx'
 import { AVATARS } from './avatars.jsx'
 
 export default function PlayerView({ state, me, send }) {
@@ -34,7 +34,7 @@ export default function PlayerView({ state, me, send }) {
 
   useEffect(() => {
     if (state.phase === 'results') setTab('positions')
-    if (state.phase === 'trading' && state.round > 1) setTab('hedge')
+    if (state.phase === 'trading' && state.round > 1) setTab(Object.values(me.holdings).some((q) => q > 0) ? 'hedge' : 'market')
   }, [state.phase, state.round])
 
   const phaseLabel =
@@ -72,7 +72,7 @@ export default function PlayerView({ state, me, send }) {
           <EventStrips state={state} />
         </div>
       </header>
-      <ShockOverlay flash={state.flash} offset={state._offset} />
+      <Takeover flash={state.flash} offset={state._offset} />
 
       {state.phase === 'lobby' && <LobbyWait state={state} me={me} send={send} />}
       {state.phase === 'finished' && <FinalCard state={state} me={me} />}

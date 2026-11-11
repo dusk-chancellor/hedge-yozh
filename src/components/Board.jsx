@@ -3,7 +3,7 @@ import QRCode from 'qrcode'
 import { leaderboard, swapsEnabled, tickerOf } from '../lib/game.js'
 import { money, money0, pct, pp, rateFmt, signedMoney, signedMoney0, tone } from '../lib/format.js'
 import { APP_NAME, Avatar, Chart, Timer } from './ui.jsx'
-import { EventStrips, ShockOverlay, Tag } from './events.jsx'
+import { EventStrips, Takeover, Tag } from './events.jsx'
 
 export const joinUrl = (code) => `${location.origin}${location.pathname}?room=${code}`
 
@@ -11,7 +11,7 @@ export default function Board({ state }) {
   return (
     <div className="board">
       <FlashBanner flash={state.flash} />
-      <ShockOverlay flash={state.flash} offset={state._offset} />
+      <Takeover flash={state.flash} offset={state._offset} />
       {state.phase === 'lobby' ? <Lobby state={state} /> : state.phase === 'finished' ? <Final state={state} /> : <Live state={state} />}
     </div>
   )
@@ -22,7 +22,7 @@ const FLASH_LABEL = { shock: 'Шок: цены уже движутся', rumor: 
 function FlashBanner({ flash }) {
   const [shown, setShown] = useState(null)
   useEffect(() => {
-    if (flash?.kind === 'shock') {
+    if (flash?.kind === 'shock' || flash?.kind === 'surprise') {
       setShown(null)
       return
     }

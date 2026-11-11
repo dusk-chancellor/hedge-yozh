@@ -305,7 +305,13 @@ export function addNews(state, { headline, assetId, impact, rate = 0, type }) {
       s.rate.value = clampRate(s.rate.value + n.rate)
       s.rate.history.push({ t: `Р${s.round} новость`, p: s.rate.value })
     }
-    s.flash = { id: n.id, kind: 'shock', headlines: [headline], assetId: n.assetId, rate: n.rate, t: Date.now() }
+    s.flash = {
+      id: n.id,
+      kind: 'shock',
+      headlines: [headline],
+      items: [{ headline, assetId: n.assetId, impact: n.impact, rate: n.rate }],
+      t: Date.now(),
+    }
   } else if (type === 'rumor') {
     s.flash = { id: n.id, kind: 'rumor', headlines: [headline], t: Date.now() }
   }
@@ -398,7 +404,15 @@ export function resolveRound(state, rng = Math.random) {
     n.status = 'fired'
     n.round = s.round
   }
-  if (due.length) s.flash = { id: uid(), kind: 'close', headlines: due.map((n) => n.headline), t: Date.now() }
+  const surprises = due.filter((n) => n.type === 'surprise')
+  if (surprises.length)
+    s.flash = {
+      id: uid(),
+      kind: 'surprise',
+      headlines: surprises.map((n) => n.headline),
+      items: surprises.map((n) => ({ headline: n.headline, assetId: n.assetId, impact: n.impact, rate: n.rate })),
+      t: Date.now(),
+    }
 
   s.phase = 'results'
   s.deadline = null

@@ -564,3 +564,15 @@ body::before { content: ''; position: fixed; inset: 0 0 auto; height: env(safe-a
 @media (prefers-reduced-motion: reduce) {
   .shock-bar { animation: shock-bar linear forwards !important; }
 }
+
+/* Surprise: violet strips and reveal */
+.ev-surprise { background: #7a3fb0; color: #fff; border-color: #4b1f73; }
+.ev-effect { font-variant-numeric: tabular-nums; font-weight: 800; opacity: 1; }
+.takeover-surprise { box-shadow: inset 0 0 0 10px #9b5de5; }
+.takeover-surprise .shock-label { background: #7a3fb0; }
+.shock-item { display: grid; justify-items: center; gap: 0.6rem; }
+.shock-effect {
+  padding: 0.15rem 0.9rem; border-radius: 999px; background: #fff; color: var(--ink);
+  font-size: clamp(1.3rem, 3.6vw, 2.4rem); font-weight: 900; font-stretch: 85%; font-variant-numeric: tabular-nums;
+}
+.shock-headline.many { font-size: clamp(1.3rem, 4vw, 2.6rem); }

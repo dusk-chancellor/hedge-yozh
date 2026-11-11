@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { tickerOf } from '../lib/game.js'
+import { pct, pp } from '../lib/format.js'
 
 // Small market icons, drawn on a 24×24 grid in currentColor
 const ICONS = {
@@ -98,12 +99,23 @@ export function NewsIcons({ n }) {
   )
 }
 
-const LABEL = { rumor: 'СЛУХ', shock: 'ШОК' }
+const LABEL = { rumor: 'СЛУХ', shock: 'ШОК', surprise: 'СЮРПРИЗ' }
 
-// The events that matter right now: rumours waiting for the close, and this round's shocks
+// What a fired news item did, e.g. "−30%" or "ставка +2,00 п.п."
+export function effectLabel(n) {
+  const parts = []
+  if (n.assetId !== 'NONE' && n.impact) parts.push(pct(n.impact, 0))
+  if (n.rate) parts.push(`ставка ${pp(n.rate)}`)
+  return parts.join(', ')
+}
+
+// What matters right now:
+//  trading: rumours waiting for the close + this round's shocks
+//  results: this round's shocks + everything that hit at the close (rumours and surprises, with real numbers)
 export function activeEvents(state) {
+  if (state.phase === 'finished' || state.phase === 'lobby') return []
   return state.news.filter(
-    (n) => (n.type === 'rumor' && n.status !== 'fired') || (n.type === 'shock' && n.round === state.round && state.phase !== 'finished'),
+    (n) => (n.type === 'rumor' && n.status !== 'fired') || (n.status === 'fired' && n.round === state.round),
   )
 }
 
@@ -114,33 +126,39 @@ export function EventStrips({ state, big = false }) {
   if (!events.length) return null
   return (
     <ul className={`events ${big ? 'events-big' : ''}`} aria-label="Важные новости">
-      {[...events].reverse().map((n) => (
-        <li key={n.id}>
-          <button
-            type="button"
-            className={`ev ev-${n.type} ${open === n.id || big ? 'ev-open' : ''}`}
-            aria-expanded={open === n.id}
-            onClick={() => setOpen(open === n.id ? null : n.id)}
-          >
-            <NewsIcons n={n} />
-            <span className="ev-text">
-              <strong>{LABEL[n.type]}:</strong> {n.headline}
-            </span>
-            {n.type === 'rumor' && <span className="ev-note">при закрытии</span>}
-          </button>
-        </li>
-      ))}
+      {[...events].reverse().map((n) => {
+        const fired = n.status === 'fired'
+        return (
+          <li key={n.id}>
+            <button
+              type="button"
+              className={`ev ev-${n.type} ${open === n.id || big ? 'ev-open' : ''}`}
+              aria-expanded={open === n.id}
+              onClick={() => setOpen(open === n.id ? null : n.id)}
+            >
+              <NewsIcons n={n} />
+              <span className="ev-text">
+                <strong>{LABEL[n.type]}:</strong> {n.headline}
+              </span>
+              {fired ? <span className="ev-note ev-effect">{effectLabel(n)}</span> : <span className="ev-note">при закрытии</span>}
+            </button>
+          </li>
+        )
+      })}
     </ul>
   )
 }
 
-// Full-screen takeover for a shock: blocks the screen for a few seconds so everyone looks up
-export function ShockOverlay({ flash, offset = 0, ms = 3500 }) {
+const TAKEOVER = { shock: { label: 'ШОК', ms: 3500 }, surprise: { label: 'СЮРПРИЗ', ms: 3500 } }
+
+// Full-screen takeover so everyone looks up: a shock during trading, or the surprise reveal at the close
+export function Takeover({ flash, offset = 0 }) {
   const [shown, setShown] = useState(null)
   useEffect(() => {
-    if (!flash || flash.kind !== 'shock') return
+    if (!flash || !TAKEOVER[flash.kind]) return
     const age = Date.now() - offset - flash.t
-    if (age > 6000) return // don't replay old shocks after a reconnect
+    if (age > 6000) return // don't replay old events after a reconnect
+    const ms = TAKEOVER[flash.kind].ms
     setShown(flash)
     try {
       navigator.vibrate?.([200, 80, 200])
@@ -149,14 +167,21 @@ export function ShockOverlay({ flash, offset = 0, ms = 3500 }) {
     return () => clearTimeout(t)
   }, [flash?.id])
   if (!shown) return null
+  const { label, ms } = TAKEOVER[shown.kind]
+  const items = shown.items || shown.headlines.map((h) => ({ headline: h, assetId: shown.assetId, rate: shown.rate }))
   return (
-    <div className="shock" role="alertdialog" aria-modal="true" aria-label="Шок на рынке">
+    <div className={`shock takeover-${shown.kind}`} role="alertdialog" aria-modal="true" aria-label={label}>
       <div className="shock-inner">
-        <div className="shock-icons">
-          <NewsIcons n={shown} />
-        </div>
-        <p className="shock-label">ШОК</p>
-        <p className="shock-headline">{shown.headlines[0]}</p>
+        <p className="shock-label">{label}</p>
+        {items.map((it, i) => (
+          <div className="shock-item" key={i}>
+            <div className="shock-icons">
+              <NewsIcons n={it} />
+            </div>
+            <p className={`shock-headline ${items.length > 1 ? 'many' : ''}`}>{it.headline}</p>
+            {(it.impact || it.rate) && <p className="shock-effect">{effectLabel(it)}</p>}
+          </div>
+        ))}
         <span className="shock-bar" style={{ animationDuration: `${ms}ms` }} />
       </div>
     </div>
