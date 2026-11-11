@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { leaderboard, swapsEnabled, tickerOf } from '../lib/game.js'
 import { money, money0, pct, pp, rateFmt, signedMoney, signedMoney0, tone } from '../lib/format.js'
 import { APP_NAME, Avatar, Chart, Timer } from './ui.jsx'
+import { EventStrips, ShockOverlay, Tag } from './events.jsx'
 
 export const joinUrl = (code) => `${location.origin}${location.pathname}?room=${code}`
 
@@ -10,6 +11,7 @@ export default function Board({ state }) {
   return (
     <div className="board">
       <FlashBanner flash={state.flash} />
+      <ShockOverlay flash={state.flash} offset={state._offset} />
       {state.phase === 'lobby' ? <Lobby state={state} /> : state.phase === 'finished' ? <Final state={state} /> : <Live state={state} />}
     </div>
   )
@@ -20,6 +22,10 @@ const FLASH_LABEL = { shock: 'Шок: цены уже движутся', rumor: 
 function FlashBanner({ flash }) {
   const [shown, setShown] = useState(null)
   useEffect(() => {
+    if (flash?.kind === 'shock') {
+      setShown(null)
+      return
+    }
     if (!flash || Date.now() - flash.t > 60000) return
     setShown(flash)
     const t = setTimeout(() => setShown(null), 8000)
@@ -90,7 +96,6 @@ function Lobby({ state }) {
 
 function Live({ state }) {
   const results = state.phase === 'results'
-  const rumors = state.news.filter((n) => n.status !== 'fired')
   return (
     <section className="live">
       <header className="live-head">
@@ -102,7 +107,7 @@ function Live({ state }) {
         {!results && <Timer deadline={state.deadline} offset={state._offset} className="board-timer" />}
         <p className="room-chip">Комната {state.code}</p>
       </header>
-      {rumors.length > 0 && <RumorBanner news={rumors} state={state} />}
+      <EventStrips state={state} big />
       <div className="live-grid">
         <div className="tiles">
           {state.assets.map((a) => (
@@ -119,31 +124,13 @@ function Live({ state }) {
   )
 }
 
-export function RumorBanner({ news, state }) {
-  return (
-    <div className="rumor" role="status">
-      <span className="rumor-icon" aria-hidden="true">
-        !
-      </span>
-      <div>
-        {news.map((n) => (
-          <p key={n.id}>
-            <strong>Слух{n.assetId !== 'NONE' && n.assetId !== 'ALL' ? ` · ${tickerOf(state, n.assetId)}` : ''}:</strong> {n.headline}
-          </p>
-        ))}
-        <p className="small">Цены отреагируют при закрытии рынка.</p>
-      </div>
-    </div>
-  )
-}
-
 export function AssetTile({ a, move }) {
   const round = a.price / a.open - 1
   const total = a.price / a.start - 1
   return (
     <article className={`tile asset-${a.id}`}>
       <header className="tile-top">
-        <span className="tag">{a.ticker}</span>
+        <Tag id={a.id} label={a.ticker} />
         <span className="asset-name">{a.name}</span>
       </header>
       <p className="tile-price num">{money(a.price)}</p>
@@ -168,7 +155,7 @@ function RateTile({ rate }) {
   return (
     <article className="tile asset-RATE">
       <header className="tile-top">
-        <span className="tag">СТАВКА</span>
+        <Tag id="RATE" label="СТАВКА" />
         <span className="asset-name">Ключевая ставка</span>
       </header>
       <p className="tile-price num">{rateFmt(rate.value)}</p>
@@ -192,7 +179,7 @@ export function NewsTape({ state, limit = 6 }) {
         <ul>
           {items.map((n) => (
             <li key={n.id}>
-              <span className={`tag asset-${n.assetId}`}>{tickerOf(state, n.assetId)}</span>
+              <Tag id={n.assetId} state={state} />
               <span className="headline">{n.headline}</span>
               <span className="when">Раунд {n.round}</span>
             </li>

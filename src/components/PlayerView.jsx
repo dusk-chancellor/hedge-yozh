@@ -22,7 +22,8 @@ import {
 } from '../lib/game.js'
 import { money, money0, num, pct, pp, rateFmt, rounds, signedMoney, tone } from '../lib/format.js'
 import { Avatar, InfoTip, QtyInput, Seg, Timer } from './ui.jsx'
-import { RumorBanner, Standings } from './Board.jsx'
+import { Standings } from './Board.jsx'
+import { AssetIcon, EventStrips, ShockOverlay, Tag } from './events.jsx'
 import { AVATARS } from './avatars.jsx'
 
 export default function PlayerView({ state, me, send }) {
@@ -42,7 +43,6 @@ export default function PlayerView({ state, me, send }) {
       : state.phase === 'finished'
         ? 'Игра окончена'
         : `Раунд ${state.round} из ${state.settings.rounds} · ${trading ? 'торги открыты' : 'рынок закрыт'}`
-  const rumors = state.news.filter((n) => n.status !== 'fired')
   const marginCall = me.cash < 0
 
   return (
@@ -68,7 +68,11 @@ export default function PlayerView({ state, me, send }) {
           {phaseLabel}
           {trading && <Timer deadline={state.deadline} offset={state._offset} />}
         </p>
+        <div className="p-events">
+          <EventStrips state={state} />
+        </div>
       </header>
+      <ShockOverlay flash={state.flash} offset={state._offset} />
 
       {state.phase === 'lobby' && <LobbyWait state={state} me={me} send={send} />}
       {state.phase === 'finished' && <FinalCard state={state} me={me} />}
@@ -82,7 +86,6 @@ export default function PlayerView({ state, me, send }) {
               активы или не закроете фьючерсы.
             </p>
           )}
-          {rumors.length > 0 && <RumorBanner news={rumors} state={state} />}
           <nav className="tabs" aria-label="Разделы">
             <Seg
               label="Разделы"
@@ -212,7 +215,7 @@ function SpotBlock({ a, me, send, locked, marginCall }) {
     <article className={`spot asset-${a.id}`}>
       <div className="spot-top">
         <p className="spot-title">
-          <span className="tag">{a.ticker}</span> <span className="asset-name">{a.name}</span>
+          <Tag id={a.id} label={a.ticker} /> <span className="asset-name">{a.name}</span>
         </p>
         <p className="spot-total num">
           <span className="muted">
@@ -395,7 +398,12 @@ function HedgeTab({ state, me, send, locked, marginCall }) {
               onChange={setAssetId}
               options={state.assets.map((x) => ({
                 value: x.id,
-                label: `${x.ticker}${me.holdings[x.id] ? ` (${me.holdings[x.id]})` : ''}`,
+                label: (
+                  <>
+                    <AssetIcon id={x.id} /> {x.ticker}
+                    {me.holdings[x.id] ? ` (${me.holdings[x.id]})` : ''}
+                  </>
+                ),
               }))}
             />
             <p className="muted small">
@@ -665,7 +673,7 @@ function PositionsTab({ state, me, send, locked }) {
         <ul className="holdings">
           {held.map((a) => (
             <li key={a.id} className={`asset-${a.id}`}>
-              <span className="tag">{a.ticker}</span>
+              <Tag id={a.id} label={a.ticker} />
               <span className="num qty-col">{num(me.holdings[a.id])}</span>
               <span className="sep">|</span>
               <span className="num">{money(me.holdings[a.id] * a.price)}</span>
@@ -722,7 +730,9 @@ function ContractCard({ state, me, c, send, locked }) {
   return (
     <li className={`contract asset-${c.assetId}`}>
       <div className="c-top">
-        <span className="c-title">{contractTitle(state, c)}</span>
+        <span className="c-title">
+          <AssetIcon id={c.assetId} /> {contractTitle(state, c)}
+        </span>
         <span className={`c-result num ${tone(res)}`}>{signedMoney(res)}</span>
       </div>
       <p className="c-detail">{contractDetail(c)}</p>

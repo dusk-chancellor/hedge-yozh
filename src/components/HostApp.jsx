@@ -29,6 +29,7 @@ import { clearGame, loadGame, saveGame, saveLastHost } from '../lib/storage.js'
 import { money0, pct, pp, rateFmt, signedMoney0, tone } from '../lib/format.js'
 import { joinUrl } from './Board.jsx'
 import { APP_NAME, Avatar, Seg, useRemaining, mmss } from './ui.jsx'
+import { AssetIcon, Tag } from './events.jsx'
 
 const THROTTLE_MS = 300
 
@@ -255,7 +256,7 @@ function NewsDesk({ state, setState }) {
             {queued.map((n) => (
               <li key={n.id}>
                 <span className={`type-badge type-${n.type}`}>{NEWS_TYPES[n.type].label}</span>
-                <span className={`tag asset-${n.assetId}`}>{tickerOf(state, n.assetId)}</span>
+                <Tag id={n.assetId} state={state} />
                 <span className="q-headline">{n.headline}</span>
                 <span className="num small">{effectText(n.assetId, n.impact, n.rate)}</span>
                 <button type="button" className="icon-btn" aria-label={`Убрать «${n.headline}»`} onClick={() => setState((s) => removeNews(s, n.id))}>
@@ -278,7 +279,7 @@ function NewsDesk({ state, setState }) {
         {presets.map((p, i) => (
           <li key={i}>
             <button type="button" className={`news-card asset-${p.assetId}`} onClick={() => open(p)}>
-              <span className={`tag asset-${p.assetId}`}>{tickerOf(state, p.assetId)}</span>
+              <Tag id={p.assetId} state={state} />
               <span className="nc-headline">{p.headline}</span>
               <span className="nc-effect num">{effectText(p.assetId, p.impact, p.rate)}</span>
             </button>
@@ -333,9 +334,9 @@ function Composer({ state, draft, setDraft, setState }) {
             value={draft.assetId}
             onChange={(v) => set({ assetId: v })}
             options={[
-              ...state.assets.map((a) => ({ value: a.id, label: a.ticker })),
-              { value: 'ALL', label: 'Весь рынок' },
-              ...(swapsEnabled(state) ? [{ value: 'NONE', label: 'Только ставку' }] : []),
+              ...state.assets.map((a) => ({ value: a.id, label: <><AssetIcon id={a.id} /> {a.ticker}</> })),
+              { value: 'ALL', label: <><AssetIcon id="ALL" /> Весь рынок</> },
+              ...(swapsEnabled(state) ? [{ value: 'NONE', label: <><AssetIcon id="RATE" /> Только ставку</> }] : []),
             ]}
           />
         </div>
@@ -523,7 +524,7 @@ function MarketNow({ state }) {
           const ch = a.price / a.open - 1
           return (
             <li key={a.id} className={`asset-${a.id}`}>
-              <span className="tag">{a.ticker}</span>
+              <Tag id={a.id} label={a.ticker} />
               <span className="num">{money0(a.price)}</span>
               <span className={`num small ${tone(ch)}`}>{pct(ch)}</span>
             </li>
@@ -531,7 +532,7 @@ function MarketNow({ state }) {
         })}
         {swapsEnabled(state) && (
           <li className="asset-RATE">
-            <span className="tag">СТАВКА</span>
+            <Tag id="RATE" label="СТАВКА" />
             <span className="num">{rateFmt(state.rate.value)}</span>
             <span className="num small">{pp(state.rate.value - state.rate.open)}</span>
           </li>
@@ -562,7 +563,7 @@ function MarketNow({ state }) {
             .slice(0, 4)
             .map((n) => (
               <li key={n.id}>
-                <span className={`tag asset-${n.assetId}`}>{tickerOf(state, n.assetId)}</span> {n.headline}
+                <Tag id={n.assetId} state={state} /> {n.headline}
               </li>
             ))}
         </ul>

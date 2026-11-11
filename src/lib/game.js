@@ -305,7 +305,7 @@ export function addNews(state, { headline, assetId, impact, rate = 0, type }) {
       s.rate.value = clampRate(s.rate.value + n.rate)
       s.rate.history.push({ t: `Р${s.round} новость`, p: s.rate.value })
     }
-    s.flash = { id: n.id, kind: 'shock', headlines: [headline], t: Date.now() }
+    s.flash = { id: n.id, kind: 'shock', headlines: [headline], assetId: n.assetId, rate: n.rate, t: Date.now() }
   } else if (type === 'rumor') {
     s.flash = { id: n.id, kind: 'rumor', headlines: [headline], t: Date.now() }
   }
@@ -552,7 +552,7 @@ export function publicState(state) {
   const s = clone(state)
   s.news = s.news
     .filter((n) => n.status === 'fired' || n.type === 'rumor')
-    .map((n) => (n.status === 'fired' ? n : { ...n, impact: null, rate: null }))
+    .map((n) => (n.status === 'fired' ? n : { ...n, impact: null, rate: null, movesRate: !!n.rate }))
   for (const p of Object.values(s.players)) {
     const done = p.contracts.filter((c) => c.status !== 'open')
     p.contracts = [...p.contracts.filter((c) => c.status === 'open'), ...done.slice(-8)]
